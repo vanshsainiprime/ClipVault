@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ClipVault"
+version = "0.1.0"
+description = "A fast, private, offline clipboard history manager for Linux"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-xlib>=0.33"
+]
+
+[project.scripts]
+clipvault = "clipvault.main:main"
+
+[tool.setuptools.packages.find]
+include = ["clipvault*"]
