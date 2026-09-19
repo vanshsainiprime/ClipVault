@@ -1,8 +1,8 @@
 import argparse
 import subprocess
 
-from ClipVault.clipboard import ClipboardWatcher
-from ClipVault.database import Database
+from clipvault.clipboard import ClipboardWatcher
+from clipvault.database import Database
 
 
 def preview(text, length=80):
@@ -122,7 +122,9 @@ def clear_history(db):
 
     word = "entry" if deleted == 1 else "entries"
 
-    print(f"Cleared {deleted} unpinned clipboard {word}.")
+    print(
+        f"Cleared {deleted} unpinned clipboard {word}."
+    )
 
 
 def show_count(db):
@@ -173,6 +175,15 @@ def daemon(db):
         print("\nClipVault daemon stopped.")
     finally:
         watcher.stop()
+
+
+def open_gui():
+    """Open the ClipVault desktop application."""
+
+    from clipvault.gui import ClipVaultGUI
+
+    app = ClipVaultGUI()
+    app.run()
 
 
 def build_parser():
@@ -269,6 +280,11 @@ def build_parser():
         help="Run ClipVault in the background",
     )
 
+    subparsers.add_parser(
+        "gui",
+        help="Open ClipVault desktop application",
+    )
+
     return parser
 
 
@@ -278,6 +294,11 @@ def main():
 
     if args.command is None:
         parser.print_help()
+        return
+
+    # GUI does not need a database connection here.
+    if args.command == "gui":
+        open_gui()
         return
 
     db = Database()
