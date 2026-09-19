@@ -2,57 +2,121 @@
 
 A simple clipboard history manager for Linux.
 
-Ever copied something, copied something else, and then realized you needed the first thing again?
+ClipVault keeps a local history of things you copy so you don't have to keep copying the same stuff again and again.
 
-That's what ClipVault is for.
-
-It keeps a local history of the things you copy, so you can search through them and copy them again whenever you need them.
-
-**Everything stays on your computer.** There are no accounts, cloud sync, telemetry, or internet connection involved.
+It runs locally, uses SQLite for storage, and doesn't need an account or internet connection.
 
 ## What it can do
 
-* Keep a history of your copied text
-* Search through your clipboard history
-* Copy an old entry back to your clipboard
-* Pin things you want to keep
-* Delete individual entries
-* Clear unpinned entries
-* Avoid saving the same thing repeatedly
-* Run quietly in the background
-* Start automatically when you log into Linux
+- Save copied text to clipboard history
+- Search through old clipboard entries
+- Pin important entries
+- Copy something back from the history
+- Delete individual entries
+- Clear unpinned history
+- Avoid saving the same thing twice in a row
+- Browse everything from a desktop GUI
+- Open a quick clipboard popup with `Super + V`
+- Use keyboard shortcuts to navigate the history
+- Switch between dark and light themes
+- Detect common types of content such as URLs, commands, code and file paths
+- Run the clipboard watcher in the background
 
-## Getting started
+## How it works
 
-### Requirements
+ClipVault watches the X11 clipboard.
 
-ClipVault currently works on **Linux with X11**.
+When you copy something, it gets saved to a local SQLite database.
+
+The GUI and the `Super + V` popup both use the same database.
+
+```text
+Copy something
+      ↓
+X11 clipboard
+      ↓
+ClipboardWatcher
+      ↓
+SQLite
+      ↓
+ClipVault GUI / Super+V
+```
+
+The database is stored here:
+
+```text
+~/.local/share/clipvault/clipboard.db
+```
+
+## Screens / Interface
+
+There are currently two ways to use ClipVault.
+
+### Main GUI
+
+The main window lets you search and manage your clipboard history.
+
+You can:
+
+- Search
+- Copy
+- Pin / unpin
+- Delete
+- Clear history
+- Browse recent entries
+
+### Super + V
+
+Press:
+
+```text
+Super + V
+```
+
+and a small clipboard popup appears.
+
+From there you can search your history and press `Enter` to copy an item.
+
+`Esc` closes the popup.
+
+## Requirements
+
+Currently ClipVault is made for **Linux with X11**.
 
 You'll need:
 
-* Python 3.10+
-* `xclip`
-* X11
+- Python 3.10+
+- SQLite
+- Tkinter
+- xclip
+- python-xlib
 
-On Debian/Ubuntu-based systems:
+For Debian/Ubuntu based systems:
 
 ```bash
-sudo apt install xclip
+sudo apt install python3 python3-venv python3-tk xclip
 ```
 
-### Install
+Wayland isn't supported yet.
+
+## Installation
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/clipvault.git
-cd clipvault
+git clone https://github.com/vanshsainiprime/ClipVault.git
+cd ClipVault
 ```
 
 Create a virtual environment:
 
 ```bash
 python3 -m venv .venv
+```
+
+Activate it:
+
+```bash
 source .venv/bin/activate
 ```
 
@@ -62,134 +126,290 @@ Install ClipVault:
 pip install -e .
 ```
 
-That's it.
 
-Check that it works:
+
+## Running it
+
+Start the GUI:
 
 ```bash
-clipvault --help
+clipvault gui
+````
+
+Start the clipboard watcher:
+
 ```
-
-## Using ClipVault
-
-See your clipboard history:
-
-```bash
-clipvault list
-```
-
-Search for something:
-
-```bash
-clipvault search "hello"
-```
-
-Copy an old entry again:
-
-```bash
-clipvault copy 5
-```
-
-Pin an entry:
-
-```bash
-clipvault pin 5
-```
-
-Delete one:
-
-```bash
-clipvault delete 5
-```
-
-See how many entries are stored:
-
-```bash
-clipvault count
-```
-
-You can also run the clipboard monitor manually:
-
-```bash
 clipvault watch
 ```
 
-Or run it as a background daemon:
+Run the background daemon:
 
-```bash
+```
 clipvault daemon
 ```
 
-## Where is my clipboard history stored?
+## CLI
 
-ClipVault uses a small SQLite database stored locally at:
+ClipVault also has a small CLI.
+
+### List history
+
+```
+clipvault list
+```
+
+You can also specify how many entries to show:
+
+```
+clipvault list --limit 50
+```
+
+### Search
+
+```
+clipvault search "github"
+```
+
+For example:
+
+```
+clipvault search "python"
+```
+
+### Copy an entry
+
+```
+clipvault copy <ID>
+```
+
+Example:
+
+```
+clipvault copy 42
+```
+
+### Pin an entry
+
+```
+clipvault pin <ID>
+```
+
+### Unpin an entry
+
+```
+clipvault unpin <ID>
+```
+
+### Delete an entry
+
+```
+clipvault delete <ID>
+```
+
+### Clear history
+
+This removes unpinned entries:
+
+```
+clipvault clear
+```
+
+Pinned entries are kept.
+
+### Count entries
+
+```
+clipvault count
+```
+
+## Super+V background service
+
+The `Super + V` popup can run as a systemd user service.
+
+Create:
+
+```text
+~/.config/systemd/user/clipvault-hotkey.service
+```
+
+Add:
+
+```ini
+[Unit]
+Description=ClipVault Global Super+V Popup
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/path/to/clipvault/.venv/bin/python -m clipvault.hotkey
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
+```
+
+Then run:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now clipvault-hotkey.service
+```
+
+Check it with:
+
+```bash
+systemctl --user status clipvault-hotkey.service
+```
+
+Replace `/path/to/clipvault` with the actual location of your project.
+
+## Database
+
+ClipVault uses SQLite.
+
+The database is created automatically at:
 
 ```text
 ~/.local/share/clipvault/clipboard.db
 ```
 
-There is no separate database server or online storage.
+Each entry contains:
+
+- ID
+- Content
+- Creation time
+- Pinned status
+
+The default history limit is 1000 entries.
+
+Pinned entries are kept when the history limit is reached.
+
+## Project structure
+
+```text
+ClipVault/
+│
+├── clipvault/
+│   ├── __init__.py
+│   ├── clipboard.py
+│   ├── database.py
+│   ├── gui.py
+│   ├── hotkey.py
+│   ├── main.py
+│   └── models.py
+│
+├── tests/
+│
+├── .gitignore
+├── LICENSE
+├── README.md
+└── pyproject.toml
+```
+
+### Main files
+
+`clipboard.py`
+
+Handles X11 clipboard monitoring.
+
+`database.py`
+
+Handles the SQLite database and clipboard history.
+
+`gui.py`
+
+Contains the main desktop interface.
+
+`hotkey.py`
+
+Handles the global `Super + V` popup.
+
+`main.py`
+
+Contains the CLI commands and application entry point.
+
+`models.py`
+
+Contains the project's data models.
 
 ## Privacy
 
-Clipboard contents can sometimes contain passwords, tokens, addresses, code, and other private information.
+ClipVault is meant to stay completely local.
 
-That's why ClipVault is designed to stay local.
+There is:
 
-ClipVault doesn't need:
+- No account
+- No cloud sync
+- No remote server
+- No analytics
+- No telemetry
+- No internet requirement
 
-* An account
-* Cloud storage
-* Internet access
-* Telemetry
-* Analytics
-* Remote APIs
+Your clipboard history stays on your machine.
 
-Your clipboard history is stored on your own machine.
+One thing to keep in mind: clipboard managers can save sensitive things too. If you copy passwords, API keys, tokens or private messages, ClipVault can save those as well.
 
-## Current status
+## Development
 
-ClipVault is still a work in progress.
+Clone the repo and create the environment:
 
-The core clipboard monitoring, storage, CLI, background daemon, and automatic startup are working.
+```bash
+git clone https://github.com/vanshsainiprime/ClipVault.git
+cd ClipVault
 
-The next big part is the desktop interface.
+python3 -m venv .venv
+source .venv/bin/activate
 
-### Roadmap
+pip install -e .
+```
 
-* [x] Clipboard monitoring
-* [x] Local SQLite history
-* [x] Search
-* [x] Pin / unpin
-* [x] Delete
-* [x] Clear history
-* [x] CLI
-* [x] Background daemon
-* [x] Automatic startup
-* [ ] Desktop GUI
-* [ ] `Super + V` clipboard popup
-* [ ] Keyboard navigation
-* [ ] System tray
-* [ ] Wayland support
-* [ ] Settings
+Run the GUI:
+
+```bash
+clipvault gui
+```
+
+Run the clipboard watcher:
+
+```bash
+clipvault watch
+```
+
+Run tests:
+
+```bash
+pytest
+```
+
+## Tech used
+
+- Python
+- SQLite
+- Tkinter
+- python-xlib
+- XFixes
+- xclip
+- systemd
 
 ## Why I made this
 
-Linux has several clipboard managers already, but I wanted to build one myself and learn how the pieces fit together — clipboard events, local storage, background processes, and desktop integration.
+I wanted a clipboard manager that was simple, local and didn't need a bunch of extra stuff running in the background.
 
-ClipVault is the result.
+So I made ClipVault.
 
-## Tech
+The basic idea is pretty much:
 
-Built with:
+```text
+Copy → Save → Search → Copy again
+```
 
-* Python
-* SQLite
-* X11 / XFixes
-* python-xlib
-* xclip
-* systemd
+That's it.
 
 ## License
 
 MIT License.
+
+See [LICENSE](LICENSE) for the full license.
+
+If you find a bug or have an idea, feel free to open an issue or pull request.
